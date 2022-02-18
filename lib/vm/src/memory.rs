@@ -254,6 +254,11 @@ impl LinearMemory {
                 *bound
             }
         };
+
+        // patch to limit memory
+        let minimum_pages = Pages(1024);
+        let offset_guard_bytes = Pages(1).bytes().0;
+
         let minimum_bytes = minimum_pages.bytes().0;
         let request_bytes = minimum_bytes.checked_add(offset_guard_bytes).unwrap();
         let mapped_pages = memory.minimum;
