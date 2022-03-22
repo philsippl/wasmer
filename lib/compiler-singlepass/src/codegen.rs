@@ -510,6 +510,18 @@ impl<'a, M: Machine> FuncGen<'a, M> {
 
         // Allocate save area, without actually writing to it.
         static_area_size = self.machine.round_stack_adjust(static_area_size);
+
+        // Stack probe.
+        //
+        // `rep stosq` writes data from low address to high address and may skip the stack guard page.
+        // so here we probe it explicitly when needed.
+        for i in (sig.params().len()..n)
+            .step_by(NATIVE_PAGE_SIZE / 8)
+            .skip(1)
+        {
+            self.machine.zero_location(Size::S64, locations[i]);
+        }
+
         self.machine.adjust_stack(static_area_size as _);
 
         // Save callee-saved registers.
@@ -585,17 +597,6 @@ impl<'a, M: Machine> FuncGen<'a, M> {
                 .get_simple_param_location(0, calling_convention),
             Location::GPR(self.machine.get_vmctx_reg()),
         );
-
-        // Stack probe.
-        //
-        // `rep stosq` writes data from low address to high address and may skip the stack guard page.
-        // so here we probe it explicitly when needed.
-        for i in (sig.params().len()..n)
-            .step_by(NATIVE_PAGE_SIZE / 8)
-            .skip(1)
-        {
-            self.machine.zero_location(Size::S64, locations[i]);
-        }
 
         // Initialize all normal locals to zero.
         let mut init_stack_loc_cnt = 0;
@@ -2598,17 +2599,18 @@ impl<'a, M: Machine> FuncGen<'a, M> {
                         function_index - self.module.num_imported_functions,
                     ))
                 };
-                self.machine
-                    .move_with_reloc(reloc_target, &mut self.relocations);
+                let calling_convention = self.calling_convention;
 
                 self.emit_call_native(
                     |this| {
                         let offset = this
                             .machine
                             .mark_instruction_with_trap_code(TrapCode::StackOverflow);
-                        this.machine
-                            .emit_call_register(this.machine.get_grp_for_call());
+                        let mut relocations = this
+                            .machine
+                            .emit_call_with_reloc(calling_convention, reloc_target);
                         this.machine.mark_instruction_address_end(offset);
+                        this.relocations.append(&mut relocations);
                     },
                     params.iter().copied(),
                     param_types.iter().copied(),
