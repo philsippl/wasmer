@@ -239,7 +239,9 @@ cfg_if::cfg_if! {
                     pc = context.uc_mcontext.mc_gpregs.gp_elr as usize;
                     sp = context.uc_mcontext.mc_gpregs.gp_sp as usize;
                 } else {
-                    compile_error!("Unsupported platform");
+                    // compile_error!("Unsupported platform");
+                    pc = 0;
+                    sp = 0;
                 }
             };
             (pc, sp)
@@ -351,7 +353,8 @@ cfg_if::cfg_if! {
                     context.uc_mcontext.mc_gpregs.gp_x[29] = x29 as libc::register_t;
                     context.uc_mcontext.mc_gpregs.gp_x[30] = lr as libc::register_t;
                 } else {
-                    compile_error!("Unsupported platform");
+                    // compile_error!("Unsupported platform");
+                    // ignore silently
                 }
             };
         }
