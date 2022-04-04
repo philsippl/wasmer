@@ -13,7 +13,20 @@ use test_generator::{
     Testsuite,
 };
 
+fn print_rust_info() {
+    println!("cargo:warning=Version: {}", rust_info.version.unwrap());
+    println!("cargo:warning=Channel: {:#?}", rust_info.channel.unwrap());
+    println!("cargo:warning=Target Arch: {}", rust_info.target_arch.unwrap_or("unknown".to_string()));
+    println!("cargo:warning=Target Env: {}", rust_info.target_env.unwrap_or("unknown".to_string()));
+    println!("cargo:warning=Target OS: {}", rust_info.target_os.unwrap_or("unknown".to_string()));
+    println!("cargo:warning=Target Pointer Width: {}", rust_info.target_pointer_width.unwrap_or("unknown".to_string()));
+    println!("cargo:warning=Target Vendor: {}", rust_info.target_vendor.unwrap_or("unknown".to_string()));
+    println!("cargo:warning=Target Triple: {}", rust_info.target_triple.unwrap_or("unknown".to_string()));
+}
+
 fn main() -> anyhow::Result<()> {
+    print_rust_info();
+
     // As rerun-if-changed doesn't support globs, we use another crate
     // to check changes in directories.
     build_deps::rerun_if_changed_paths("tests/wasi-wast/wasi/unstable/*")
