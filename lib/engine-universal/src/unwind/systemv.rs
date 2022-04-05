@@ -78,6 +78,10 @@ impl UnwindRegistry {
             let ptr = eh_frame.as_ptr();
             __register_frame(ptr);
             self.registrations.push(ptr as usize);
+        } else if cfg!(all(target_os = "android", target_arch = "arm")) {
+            // nop, ignore
+            // no libunwind
+            // no libcc (???)
         } else {
             // For libunwind, `__register_frame` takes a pointer to a single FDE
             let start = eh_frame.as_ptr();
@@ -105,17 +109,19 @@ impl UnwindRegistry {
 impl Drop for UnwindRegistry {
     fn drop(&mut self) {
         if self.published {
-            unsafe {
-                // libgcc stores the frame entries as a linked list in decreasing sort order
-                // based on the PC value of the registered entry.
-                //
-                // As we store the registrations in increasing order, it would be O(N^2) to
-                // deregister in that order.
-                //
-                // To ensure that we just pop off the first element in the list upon every
-                // deregistration, walk our list of registrations backwards.
-                for fde in self.registrations.iter().rev() {
-                    __deregister_frame(*fde as *const _);
+            if cfg!(not(all(target_os = "android", target_arch = "arm"))) {
+                unsafe {
+                    // libgcc stores the frame entries as a linked list in decreasing sort order
+                    // based on the PC value of the registered entry.
+                    //
+                    // As we store the registrations in increasing order, it would be O(N^2) to
+                    // deregister in that order.
+                    //
+                    // To ensure that we just pop off the first element in the list upon every
+                    // deregistration, walk our list of registrations backwards.
+                    for fde in self.registrations.iter().rev() {
+                        __deregister_frame(*fde as *const _);
+                    }
                 }
             }
         }
