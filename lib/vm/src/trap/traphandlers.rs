@@ -218,7 +218,7 @@ cfg_if::cfg_if! {
                     cx.uc_mcontext.pc as *const u8
                 } else if #[cfg(all(target_os = "android", target_arch = "aarch64"))] {
                     let cx = &*(cx as *const libc::ucontext_t);
-                    cx.uc_mcontext.pc as *const u8
+                    0 as u8
                 } else if #[cfg(all(target_os = "android", target_arch = "arm"))] {
                     // nop
                 } else if #[cfg(all(target_os = "macos", target_arch = "x86_64"))] {
